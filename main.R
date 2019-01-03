@@ -1,4 +1,13 @@
+# skriptas atlieka šiuos pakeitimus:
+# 1. pakeičia praėjusio mėnesio keliu mokesčius į naujai išprognozuotus (pvz.: jegu šiandien sausis, gruo-
+# džio mėnuo bus pakeistas prognozuojamais, net jei duomenys yra; žr. trūkstamų rodiklių prognozavimas
+# sekciją
+# 2. Valsped ir Nuova frachtai praėjusiam mėnesiui yra prognozuojami.
+
 library(tidyverse)
+library(lubridate)
+
+# Duomenų paruošimas ------------------------------------------------------
 
 #pakraunam duomenis
 dedal <- read.csv("data/Dedal.csv", stringsAsFactors=FALSE, encoding = "UTF-8", dec = ",")
@@ -55,6 +64,41 @@ data[data$menuo %in% c("04","05","06"),"ketvirtis"] <- "02"
 data[data$menuo %in% c("07","08","09"),"ketvirtis"] <- "03"
 data[data$menuo %in% c("10","11","12"),"ketvirtis"] <- "04"
 
+
+# Kelių mokesčio prognozė --------------------------------------------
+
+# prognozuojam praėjusio mėnesio kelių mokesčius imam prieš tai buvusių 4 mėnesių vidurkį pagal klientą
+
+# nustatomi 4 menesiai, buvę iki praėjusio mėnesio, pvz.: jeigu šiandien sausis, tai praėjęs mėnuo bus
+# gruodis (kuriam mes dar neturime kelių mokesčio), o 4 mėnesiai, naudojami skaičiavimui bus rugpjūtis, 
+# rugsėjis, spalis ir lapkritis.
+
+menesiai <- c(month(Sys.Date() %m+% months(-2)),month(Sys.Date() %m+% months(-3)),
+                                                     month(Sys.Date() %m+% months(-4)),
+                                                           month(Sys.Date() %m+% months(-5)))
+
+menuo <- as.character(month(Sys.Date() %m+% months(-1)))
+data$keliai_eur_km <- as.numeric(data$keliai_eur_km)
+kdata <- data[data$menuo %in% menesiai,]
+keliai_pagal_klienta <- aggregate(keliai_eur_km ~ klientas, data = kdata, FUN = mean)
+keliai_pagal_klienta$menuo <- menuo
+
+# keičiam praėjusio mėnesio kelių mokesčius į naujai apskaičiuotus
+
+for (k in 1:nrow(keliai_pagal_klienta)) {
+  
+  data[data$klientas == keliai_pagal_klienta[k,"klientas"] & 
+         data$menuo == menuo,"keliai_eur_km"] <- keliai_pagal_klienta[k,"keliai_eur_km"]
+  
+}
+
+
+# Valsped ir Nuova frachtų prognozė ---------------------------------------
+
+
+
+# Klientų rodiklių skaičiavimas -------------------------------------------
+
 #skaičiuojam frachtus dienai paketvirčiui kiekvienam klientui
 data$frachtas <- as.numeric(data$frachtas)
 data$is_viso_dienu <- as.integer(data$is_viso_dienu)
@@ -71,12 +115,15 @@ pelnas_proc_klientas_ketvirtis$pelnas_proc <- pelnas_proc_klientas_ketvirtis$pel
 # jei pelnas neigiamas, statom 0
 pelnas_proc_klientas_ketvirtis[pelnas_proc_klientas_ketvirtis$pelnas_proc < 0,"pelnas_proc"] <- 0
 
+
+# Pelnas dienai % pagal klientus, 4 ketvirtis vs metai --------------------
+
 #paskutinio ketvirčio pelno grafikas
 pelnas_plot <- pelnas_proc_klientas_ketvirtis[pelnas_proc_klientas_ketvirtis$ketvirtis == "04",]
 ggplot(data = pelnas_plot, aes(x = reorder(klientas, -pelnas_proc), y = pelnas_proc)) +
   geom_col(fill = "steelblue") +
   scale_y_continuous(breaks = round(seq(0, max(pelnas_plot$pelnas_proc), by = 5),0)) +
-  ylab("Pelnas prieš pastovias išlaidas (%) 4 ketvirtis 2018") + 
+  ylab("Pelnas dienai prieš pastovias išlaidas (%) 4 ketvirtis 2018") + 
   xlab("Klientas") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.title.y = element_text(size = rel(1.4), angle = 90),
