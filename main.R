@@ -55,16 +55,18 @@ data[data$menuo %in% c("04","05","06"),"ketvirtis"] <- "02"
 data[data$menuo %in% c("07","08","09"),"ketvirtis"] <- "03"
 data[data$menuo %in% c("10","11","12"),"ketvirtis"] <- "04"
 
-#skaičiuojam frachtus paketvirčiui kiekvienam klientui
+#skaičiuojam frachtus dienai paketvirčiui kiekvienam klientui
 data$frachtas <- as.numeric(data$frachtas)
-frachtai_klientas_ketvirtis <- aggregate(frachtas ~ klientas + ketvirtis, data = data, FUN = sum)
+data$is_viso_dienu <- as.integer(data$is_viso_dienu)
+data$frachtas_dienai <- data$frachtas/data$is_viso_dienu
+frachtai_klientas_ketvirtis <- aggregate(frachtas_dienai ~ klientas + ketvirtis, data = data, FUN = sum)
 
-#skaičiuojam pelną paketvirčiui kiekvienam klientui
-data$pelnas_pries_pap_islaidas <- as.numeric(data$pelnas_pries_pap_islaidas)
-pelnas_klientas_ketvirtis <- aggregate(pelnas_pries_pap_islaidas ~ klientas + ketvirtis, data = data, FUN = sum)
+#skaičiuojam pelną dienai paketvirčiui kiekvienam klientui
+data$pelnas_dienai <- as.numeric(data$pelnas_dienai)
+pelnas_klientas_ketvirtis <- aggregate(pelnas_dienai ~ klientas + ketvirtis, data = data, FUN = sum)
 pelnas_proc_klientas_ketvirtis <- left_join(frachtai_klientas_ketvirtis,pelnas_klientas_ketvirtis)
-pelnas_proc_klientas_ketvirtis$pelnas_proc <- pelnas_proc_klientas_ketvirtis$pelnas_pries_pap_islaidas / 
-  pelnas_proc_klientas_ketvirtis$frachtas * 100
+pelnas_proc_klientas_ketvirtis$pelnas_proc <- pelnas_proc_klientas_ketvirtis$pelnas_dienai / 
+  pelnas_proc_klientas_ketvirtis$frachtas_dienai * 100
 
 # jei pelnas neigiamas, statom 0
 pelnas_proc_klientas_ketvirtis[pelnas_proc_klientas_ketvirtis$pelnas_proc < 0,"pelnas_proc"] <- 0
