@@ -451,6 +451,276 @@ ggplot(data = kuras_litrais_plot, aes(x = reorder(klientas, -lt_100km_faktas2), 
         plot.title = element_text(size = 24)) +
   geom_text(aes(label = round(lt_100km_faktas2,1)), size = 5)
 
+# Frachtas kilometrui --------------------------------------------
+
+#skaičiuojam frachtą kilometrui paketvirčiui kiekvienam klientui
+data$frachtas_km <- as.numeric(data$frachtas_km)
+frachtas_km_klientas_ketvirtis <- aggregate(frachtas_km ~ klientas + ketvirtis, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas + ketvirtis, data = data, FUN = length)
+frachtas_km_klientas_ketvirtis <- left_join(frachtas_km_klientas_ketvirtis,reisai_klientas)
+frachtas_km_klientas_ketvirtis$frachtas_km2 <- frachtas_km_klientas_ketvirtis$frachtas_km/frachtas_km_klientas_ketvirtis$is_viso_dienu
+
+# skaičiuojam frachtą kilometrui kiekvienam klientui metams
+frachtas_km_klientas_metai <- aggregate(frachtas_km ~ klientas, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas, data = data, FUN = length)
+frachtas_km_klientas_metai <- left_join(frachtas_km_klientas_metai,reisai_klientas)
+frachtas_km_klientas_metai$frachtas_km2 <- frachtas_km_klientas_metai$frachtas_km/frachtas_km_klientas_metai$is_viso_dienu
+
+#paskutinio ketvirčio frachto kilometrui grafikas
+frachtas_km_plot <- frachtas_km_klientas_ketvirtis[frachtas_km_klientas_ketvirtis$ketvirtis == ketvirtis,]
+ggplot(data = frachtas_km_plot, aes(x = reorder(klientas, -frachtas_km2), y = frachtas_km2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(frachtas_km_plot$frachtas_km2), by = 0.1),2)) +
+  ylab("EUR") + 
+  ggtitle("Frachtas kilometrui 4 ketvirtis 2018") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(frachtas_km2,2)), size = 5)
+
+#metinis frachto kilometrui grafikas
+frachtas_km_plot <- frachtas_km_klientas_metai
+ggplot(data = frachtas_km_plot, aes(x = reorder(klientas, -frachtas_km2), y = frachtas_km2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(frachtas_km_plot$frachtas_km2), by = 0.1),2)) +
+  ylab("EUR") + 
+  ggtitle("Kuro išlaidos kilometrui 2018 metai") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(frachtas_km2,2)), size = 5)
+
+# Frachtas dienai pagal klientus, 4 ketvirtis vs metai --------------------------
+
+#skaičiuojam frachtą dienai paketvirčiui kiekvienam klientui
+data$frachtas_dienai <- as.numeric(data$frachtas_dienai)
+frachtas_klientas_ketvirtis <- aggregate(frachtas_dienai ~ klientas + ketvirtis, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas + ketvirtis, data = data, FUN = length)
+frachtas_klientas_ketvirtis <- left_join(frachtas_klientas_ketvirtis,reisai_klientas)
+frachtas_klientas_ketvirtis$frachtas_dienai2 <- frachtas_klientas_ketvirtis$frachtas_dienai/frachtas_klientas_ketvirtis$is_viso_dienu
+
+# skaičiuojam metinį vidutinį frachtas dienai kiekvienam klientui
+frachtas_klientas_metai <- aggregate(frachtas_dienai ~ klientas, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas, data = data, FUN = length)
+frachtas_klientas_metai <- left_join(frachtas_klientas_metai,reisai_klientas)
+frachtas_klientas_metai$frachtas_dienai2 <- frachtas_klientas_metai$frachtas_dienai/frachtas_klientas_metai$is_viso_dienu
+
+
+#paskutinio ketvirčio frachtas dienai grafikas
+frachtas_plot <- frachtas_klientas_ketvirtis[frachtas_klientas_ketvirtis$ketvirtis == ketvirtis,]
+ggplot(data = frachtas_plot, aes(x = reorder(klientas, -frachtas_dienai2), y = frachtas_dienai2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(frachtas_plot$frachtas_dienai2), by = 50),0)) +
+  ylab("EUR") + 
+  ggtitle("Frachtas dienai 4 ketvirtis 2018") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(frachtas_dienai2,0)), size = 5)
+
+#metinis frachto dienai grafikas
+frachtas_plot <- frachtas_klientas_metai
+ggplot(data = frachtas_plot, aes(x = reorder(klientas, -frachtas_dienai2), y = frachtas_dienai2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(frachtas_plot$frachtas_dienai2), by = 50),0)) +
+  ylab("EUR") + 
+  ggtitle("Frachtas dienai 2018 metai") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(frachtas_dienai2,0)), size = 5)
+
+# Vairuotojų atlyginimas dienai pagal klientus, 4 ketvirtis vs metai --------------------------
+
+#skaičiuojam atlyginimą dienai paketvirčiui kiekvienam klientui
+data$vair_atlyg_dienai <- as.numeric(data$vair_atlyg_dienai)
+vair_atlyg_klientas_ketvirtis <- aggregate(vair_atlyg_dienai ~ klientas + ketvirtis, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas + ketvirtis, data = data, FUN = length)
+vair_atlyg_klientas_ketvirtis <- left_join(vair_atlyg_klientas_ketvirtis,reisai_klientas)
+vair_atlyg_klientas_ketvirtis$vair_atlyg_dienai2 <- vair_atlyg_klientas_ketvirtis$vair_atlyg_dienai/vair_atlyg_klientas_ketvirtis$is_viso_dienu
+
+# skaičiuojam metinį vidutinį vair_atlyg dienai kiekvienam klientui
+vair_atlyg_klientas_metai <- aggregate(vair_atlyg_dienai ~ klientas, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas, data = data, FUN = length)
+vair_atlyg_klientas_metai <- left_join(vair_atlyg_klientas_metai,reisai_klientas)
+vair_atlyg_klientas_metai$vair_atlyg_dienai2 <- vair_atlyg_klientas_metai$vair_atlyg_dienai/vair_atlyg_klientas_metai$is_viso_dienu
+
+
+#paskutinio ketvirčio vair_atlyg dienai grafikas
+vair_atlyg_plot <- vair_atlyg_klientas_ketvirtis[vair_atlyg_klientas_ketvirtis$ketvirtis == ketvirtis,]
+ggplot(data = vair_atlyg_plot, aes(x = reorder(klientas, -vair_atlyg_dienai2), y = vair_atlyg_dienai2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(vair_atlyg_plot$vair_atlyg_dienai2), by = 5),0)) +
+  ylab("EUR") + 
+  ggtitle("Vairuotojo atlyginimas dienai 4 ketvirtis 2018") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(vair_atlyg_dienai2,0)), size = 5)
+
+#metinis frachto dienai grafikas
+vair_atlyg_plot <- vair_atlyg_klientas_metai
+ggplot(data = vair_atlyg_plot, aes(x = reorder(klientas, -vair_atlyg_dienai2), y = vair_atlyg_dienai2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(vair_atlyg_plot$vair_atlyg_dienai2), by = 5),0)) +
+  ylab("EUR") + 
+  ggtitle("Vairuotojo atlyginimas dienai 2018 metai") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(vair_atlyg_dienai2,0)), size = 5)
+
+# Kelių mokesčiai kilometrui --------------------------------------------
+
+#skaičiuojam kelių mokesčius kilometrui paketvirčiui kiekvienam klientui
+data$keliai_eur_km <- as.numeric(data$keliai_eur_km)
+keliai_eur_km_klientas_ketvirtis <- aggregate(keliai_eur_km ~ klientas + ketvirtis, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas + ketvirtis, data = data, FUN = length)
+keliai_eur_km_klientas_ketvirtis <- left_join(keliai_eur_km_klientas_ketvirtis,reisai_klientas)
+keliai_eur_km_klientas_ketvirtis$keliai_eur_km2 <- keliai_eur_km_klientas_ketvirtis$keliai_eur_km/keliai_eur_km_klientas_ketvirtis$is_viso_dienu
+
+# skaičiuojam kelių mokesčius kilometrui kiekvienam klientui metams
+keliai_eur_km_klientas_metai <- aggregate(keliai_eur_km ~ klientas, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas, data = data, FUN = length)
+keliai_eur_km_klientas_metai <- left_join(keliai_eur_km_klientas_metai,reisai_klientas)
+keliai_eur_km_klientas_metai$keliai_eur_km2 <- keliai_eur_km_klientas_metai$keliai_eur_km/keliai_eur_km_klientas_metai$is_viso_dienu
+
+#paskutinio ketvirčio kelių mokesčių kilometrui grafikas
+keliai_eur_km_plot <- keliai_eur_km_klientas_ketvirtis[keliai_eur_km_klientas_ketvirtis$ketvirtis == ketvirtis,]
+ggplot(data = keliai_eur_km_plot, aes(x = reorder(klientas, -keliai_eur_km2), y = keliai_eur_km2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(keliai_eur_km_plot$keliai_eur_km2), by = 0.05),2)) +
+  ylab("EUR") + 
+  ggtitle("Kelių mokesčiai kilometrui 4 ketvirtis 2018") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(keliai_eur_km2,2)), size = 5)
+
+#metinis kelių mokesčio kilometrui grafikas
+keliai_eur_km_plot <- keliai_eur_km_klientas_metai
+ggplot(data = keliai_eur_km_plot, aes(x = reorder(klientas, -keliai_eur_km2), y = keliai_eur_km2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(keliai_eur_km_plot$keliai_eur_km2), by = 0.05),2)) +
+  ylab("EUR") + 
+  ggtitle("Kelių mokesčiai kilometrui 2018 metai") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(keliai_eur_km2,2)), size = 5)
+
+# Pelnas kilometrui --------------------------------------------
+
+#skaičiuojam pelną kilometrui paketvirčiui kiekvienam klientui
+data$pelnas_km <- as.numeric(data$pelnas_km)
+pelnas_km_klientas_ketvirtis <- aggregate(pelnas_km ~ klientas + ketvirtis, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas + ketvirtis, data = data, FUN = length)
+pelnas_km_klientas_ketvirtis <- left_join(pelnas_km_klientas_ketvirtis,reisai_klientas)
+pelnas_km_klientas_ketvirtis$pelnas_km2 <- pelnas_km_klientas_ketvirtis$pelnas_km/pelnas_km_klientas_ketvirtis$is_viso_dienu
+
+# skaičiuojam pelną kilometrui kiekvienam klientui metams
+pelnas_km_klientas_metai <- aggregate(pelnas_km ~ klientas, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas, data = data, FUN = length)
+pelnas_km_klientas_metai <- left_join(pelnas_km_klientas_metai,reisai_klientas)
+pelnas_km_klientas_metai$pelnas_km2 <- pelnas_km_klientas_metai$pelnas_km/pelnas_km_klientas_metai$is_viso_dienu
+
+#paskutinio ketvirčio pelno kilometrui grafikas
+pelnas_km_plot <- pelnas_km_klientas_ketvirtis[pelnas_km_klientas_ketvirtis$ketvirtis == ketvirtis,]
+ggplot(data = pelnas_km_plot, aes(x = reorder(klientas, -pelnas_km2), y = pelnas_km2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(pelnas_km_plot$pelnas_km2), by = 0.05),2)) +
+  ylab("EUR") + 
+  ggtitle("Pelnas kilometrui 4 ketvirtis 2018") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(pelnas_km2,2)), size = 5)
+
+#metinis pelnas kilometrui grafikas
+pelnas_km_plot <- pelnas_km_klientas_metai
+ggplot(data = pelnas_km_plot, aes(x = reorder(klientas, -pelnas_km2), y = pelnas_km2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(pelnas_km_plot$pelnas_km2), by = 0.05),2)) +
+  ylab("EUR") + 
+  ggtitle("Pelnas kilometrui 2018 metai") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(pelnas_km2,2)), size = 5)
+
+
+# Frachto struktūra pagal klientą praėjęs ketvirtis-----------------------------------------
+
+strukturai <- data[,c("is_viso_dienu","pelnas_pries_pap_islaidas","islaidos_vairams","islaidos_keliams",
+                      "islaidos_kurui","klientas","ketvirtis")]
+
+strukturai <- melt(strukturai, id=c("klientas","ketvirtis"))
+
+strukturai_agg <- aggregate(value ~ variable + klientas + ketvirtis, data = strukturai, FUN = sum)
+
+dienos <- strukturai_agg[strukturai_agg$variable == "is_viso_dienu",]
+colnames(dienos)[4] <- "is_viso_dienu"
+
+strukturai_agg <- strukturai_agg[strukturai_agg$variable != "is_viso_dienu",]
+
+
+strukturai_agg <- left_join(strukturai_agg,dienos[,c("is_viso_dienu","klientas","ketvirtis")])
+
+strukturai_agg$variable_dienai <- strukturai_agg$value / strukturai_agg$is_viso_dienu
+
+strukturai_agg <- strukturai_agg[strukturai_agg$ketvirtis == ketvirtis,]
+
+strukturai_agg <- strukturai_agg[ , !(names(strukturai_agg) == "ketvirtis")]
+
+pelnas <- strukturai_agg[strukturai_agg$variable == "pelnas_pries_pap_islaidas",c("klientas","variable_dienai")]
+colnames(pelnas)[2] <- "pelnas_dienai2"
+
+strukturai_agg <- left_join(strukturai_agg, pelnas)
+
+ggplot(strukturai_agg, aes(y = variable_dienai, x = reorder(klientas, -pelnas_dienai2))) + 
+              scale_fill_brewer(palette = "Spectral") + 
+  geom_col(aes(fill=variable), 
+                   col="black", 
+                   size=.1) +
+  ylab("EUR") + 
+  ggtitle("Frachto dienai struktūra 4 ketvirtis 2018 metai (išrikiuota pagal pelną)") +
+  xlab("Klientas") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24))
+
 # Įrašom duomenis į failus ------------------------------------------------
 
 write.xlsx(data,"K2 ataskaita extra.xlsx")
