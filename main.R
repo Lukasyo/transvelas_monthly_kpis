@@ -313,6 +313,144 @@ ggplot(data = pelnas_plot, aes(x = reorder(klientas, -pelnas_dienai2), y = pelna
   geom_text(aes(label = round(pelnas_dienai2,0)), size = 5)
 
 
+# KM dienai pagal klientus, 4 ketvirtis vs metai --------------------------
+
+#skaičiuojam KM dienai paketvirčiui kiekvienam klientui
+data$km_dienai <- as.numeric(data$km_dienai)
+km_klientas_ketvirtis <- aggregate(km_dienai ~ klientas + ketvirtis, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas + ketvirtis, data = data, FUN = length)
+km_klientas_ketvirtis <- left_join(km_klientas_ketvirtis,reisai_klientas)
+km_klientas_ketvirtis$km_dienai2 <- km_klientas_ketvirtis$km_dienai/km_klientas_ketvirtis$is_viso_dienu
+
+# skaičiuojam metinį vidutinį KM dienai kiekvienam klientui
+km_klientas_metai <- aggregate(km_dienai ~ klientas, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas, data = data, FUN = length)
+km_klientas_metai <- left_join(km_klientas_metai,reisai_klientas)
+km_klientas_metai$km_dienai2 <- km_klientas_metai$km_dienai/km_klientas_metai$is_viso_dienu
+
+
+#paskutinio ketvirčio km dienai grafikas
+km_plot <- km_klientas_ketvirtis[km_klientas_ketvirtis$ketvirtis == ketvirtis,]
+ggplot(data = km_plot, aes(x = reorder(klientas, -km_dienai2), y = km_dienai2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(km_plot$km_dienai2), by = 50),0)) +
+  ylab("KM") + 
+  ggtitle("Kilometrai dienai 4 ketvirtis 2018") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(km_dienai2,0)), size = 5)
+
+#metinis pelno grafikas
+km_plot <- km_klientas_metai
+ggplot(data = km_plot, aes(x = reorder(klientas, -km_dienai2), y = km_dienai2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(km_plot$km_dienai2), by = 50),0)) +
+  ylab("KM") + 
+  ggtitle("Kilometrai dienai 2018 metai") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(km_dienai2,0)), size = 5)
+
+# Išlaidos kurui per kilometrą --------------------------------------------
+
+#skaičiuojam išlaidas kurui per kilometrą paketvirčiui kiekvienam klientui
+data$kuras_eur_km <- as.numeric(data$kuras_eur_km)
+kuras_eur_km_klientas_ketvirtis <- aggregate(kuras_eur_km ~ klientas + ketvirtis, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas + ketvirtis, data = data, FUN = length)
+kuras_eur_km_klientas_ketvirtis <- left_join(kuras_eur_km_klientas_ketvirtis,reisai_klientas)
+kuras_eur_km_klientas_ketvirtis$kuras_eur_km2 <- kuras_eur_km_klientas_ketvirtis$kuras_eur_km/kuras_eur_km_klientas_ketvirtis$is_viso_dienu
+
+# skaičiuojam metinį vidutines išlaidas kurui kilometrui kiekvienam klientui
+kuras_eur_km_klientas_metai <- aggregate(kuras_eur_km ~ klientas, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas, data = data, FUN = length)
+kuras_eur_km_klientas_metai <- left_join(kuras_eur_km_klientas_metai,reisai_klientas)
+kuras_eur_km_klientas_metai$kuras_eur_km2 <- kuras_eur_km_klientas_metai$kuras_eur_km/kuras_eur_km_klientas_metai$is_viso_dienu
+
+
+#paskutinio ketvirčio išlaidų kurui kilometrui grafikas
+kuras_eur_km_plot <- kuras_eur_km_klientas_ketvirtis[kuras_eur_km_klientas_ketvirtis$ketvirtis == ketvirtis,]
+ggplot(data = kuras_eur_km_plot, aes(x = reorder(klientas, -kuras_eur_km2), y = kuras_eur_km2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(kuras_eur_km_plot$kuras_eur_km2), by = 0.05),2)) +
+  ylab("EUR") + 
+  ggtitle("Išlaidos kurui kilometrui 4 ketvirtis 2018") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(kuras_eur_km2,2)), size = 5)
+
+#metinis kuro išlaidų kilometrui grafikas
+kuras_eur_km_plot <- kuras_eur_km_klientas_metai
+ggplot(data = kuras_eur_km_plot, aes(x = reorder(klientas, -kuras_eur_km2), y = kuras_eur_km2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(kuras_eur_km_plot$kuras_eur_km2), by = 0.05),2)) +
+  ylab("EUR") + 
+  ggtitle("Kuro išlaidos kilometrui 2018 metai") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(kuras_eur_km2,2)), size = 5)
+
+# Kuro sąnaudos 100 km  --------------------------------------------
+
+#skaičiuojam kuro sąnaudas paketvirčiui kiekvienam klientui
+data$lt_100km_faktas <- as.numeric(data$lt_100km_faktas)
+kuras_litrais_klientas_ketvirtis <- aggregate(lt_100km_faktas ~ klientas + ketvirtis, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas + ketvirtis, data = data, FUN = length)
+kuras_litrais_klientas_ketvirtis <- left_join(kuras_litrais_klientas_ketvirtis,reisai_klientas)
+kuras_litrais_klientas_ketvirtis$lt_100km_faktas2 <- kuras_litrais_klientas_ketvirtis$lt_100km_faktas/kuras_litrais_klientas_ketvirtis$is_viso_dienu
+
+# skaičiuojam kuro sąnaudas litrais kiekvienam klientui metams
+kuras_litrais_klientas_metai <- aggregate(lt_100km_faktas ~ klientas, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas, data = data, FUN = length)
+kuras_litrais_klientas_metai <- left_join(kuras_litrais_klientas_metai,reisai_klientas)
+kuras_litrais_klientas_metai$lt_100km_faktas2 <- kuras_litrais_klientas_metai$lt_100km_faktas/kuras_eur_km_klientas_metai$is_viso_dienu
+
+
+#paskutinio ketvirčio išlaidų kurui kilometrui grafikas
+kuras_litrais_plot <- kuras_litrais_klientas_ketvirtis[kuras_litrais_klientas_ketvirtis$ketvirtis == ketvirtis,]
+ggplot(data = kuras_litrais_plot, aes(x = reorder(klientas, -lt_100km_faktas2), y = lt_100km_faktas2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(kuras_litrais_plot$lt_100km_faktas2), by = 5),1)) +
+  ylab("Litrai") + 
+  ggtitle("Kuro sąnaudos 100km faktas 4 ketvirtis 2018") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(lt_100km_faktas2,1)), size = 5)
+
+#metinis kuro išlaidų kilometrui grafikas
+kuras_litrais_plot <- kuras_litrais_klientas_metai
+ggplot(data = kuras_litrais_plot, aes(x = reorder(klientas, -lt_100km_faktas2), y = lt_100km_faktas2)) +
+  geom_col(fill = "steelblue") +
+  scale_y_continuous(breaks = round(seq(0, max(kuras_litrais_plot$lt_100km_faktas2), by = 5),1)) +
+  ylab("Litrai") + 
+  ggtitle("Kuro sąnaudos 100km faktas 2018") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(lt_100km_faktas2,1)), size = 5)
+
 # Įrašom duomenis į failus ------------------------------------------------
 
 write.xlsx(data,"K2 ataskaita extra.xlsx")
