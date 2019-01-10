@@ -34,6 +34,8 @@ fg_turin <- read.csv("data/FG Turin.csv", stringsAsFactors=FALSE, encoding = "UT
 fg_dalmine <- read.csv("data/FG Dalmine.csv", stringsAsFactors=FALSE, encoding = "UTF-8", dec = ",")
 ispanija <- read.csv("data/Ispanija.csv", stringsAsFactors=FALSE, encoding = "UTF-8", dec = ",")
 dsv_road_ooo <- read.csv("data/DSV ROAD OOO.csv", stringsAsFactors=FALSE, encoding = "UTF-8", dec = ",")
+reisas_masina <- read.csv("data/masina_kelialapis.csv", stringsAsFactors=FALSE, encoding = "UTF-8", dec = ",")
+masina_modelis <- read.xlsx("data/numeris_modelis.xlsx")
 
 #nurodom koks skyrius kurio dataframe
 dedal$klientas <- "Dedal"
@@ -77,6 +79,11 @@ data <- data[!data$vair_atlyg_dienai == "0",]
 
 # pašalint nulius iš mėnesių
 data$menuo <- as.integer(gsub("0","",data$menuo))
+data[data$menuo == "1" & data$ketvirtis == "04","menuo"] <- "10"
+data$menuo <- as.integer(data$menuo)
+
+# pridedam mašiną prie duomenų
+data <- left_join(data, reisas_masina)
 
 # Kelių mokesčio prognozė --------------------------------------------
 
@@ -344,7 +351,7 @@ ggplot(data = km_plot, aes(x = reorder(klientas, -km_dienai2), y = km_dienai2)) 
         plot.title = element_text(size = 24)) +
   geom_text(aes(label = round(km_dienai2,0)), size = 5)
 
-#metinis pelno grafikas
+#metinis km grafikas
 km_plot <- km_klientas_metai
 ggplot(data = km_plot, aes(x = reorder(klientas, -km_dienai2), y = km_dienai2)) +
   geom_col(fill = "steelblue") +
@@ -487,7 +494,7 @@ ggplot(data = frachtas_km_plot, aes(x = reorder(klientas, -frachtas_km2), y = fr
   geom_col(fill = "steelblue") +
   scale_y_continuous(breaks = round(seq(0, max(frachtas_km_plot$frachtas_km2), by = 0.1),2)) +
   ylab("EUR") + 
-  ggtitle("Kuro išlaidos kilometrui 2018 metai") +
+  ggtitle("Frachtas kilometrui 2018 metai") +
   xlab("Klientas") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.text.y = element_text(angle = 0, hjust = 1,size=13),
@@ -720,6 +727,175 @@ ggplot(strukturai_agg, aes(y = variable_dienai, x = reorder(klientas, -pelnas_di
         axis.title.y = element_text(size = rel(1.4), angle = 90),
         axis.title.x = element_text(size = rel(1.4), angle = 0),
         plot.title = element_text(size = 24))
+
+# Frachto struktūra pagal klientą metams-----------------------------------------
+
+strukturai <- data[,c("is_viso_dienu","pelnas_pries_pap_islaidas","islaidos_vairams","islaidos_keliams",
+                      "islaidos_kurui","klientas","ketvirtis")]
+
+strukturai <- melt(strukturai, id="klientas")
+
+strukturai$value <- as.integer(strukturai$value)
+
+strukturai_agg <- aggregate(value ~ variable + klientas, data = strukturai, FUN = sum)
+
+dienos <- strukturai_agg[strukturai_agg$variable == "is_viso_dienu",]
+colnames(dienos)[3] <- "is_viso_dienu"
+
+strukturai_agg <- strukturai_agg[!strukturai_agg$variable %in% c("is_viso_dienu","ketvirtis"),]
+
+
+strukturai_agg <- left_join(strukturai_agg,dienos[,c("is_viso_dienu","klientas")])
+
+strukturai_agg$variable_dienai <- strukturai_agg$value / strukturai_agg$is_viso_dienu
+
+pelnas <- strukturai_agg[strukturai_agg$variable == "pelnas_pries_pap_islaidas",c("klientas","variable_dienai")]
+colnames(pelnas)[2] <- "pelnas_dienai2"
+
+strukturai_agg <- left_join(strukturai_agg, pelnas)
+
+ggplot(strukturai_agg, aes(y = variable_dienai, x = reorder(klientas, -pelnas_dienai2))) + 
+  scale_fill_brewer(palette = "Spectral") + 
+  geom_col(aes(fill=variable), 
+           col="black", 
+           size=.1) +
+  ylab("EUR") + 
+  ggtitle("Frachto dienai struktūra 2018 metai (išrikiuota pagal pelną)") +
+  xlab("Klientas") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24))
+
+
+# kuras, keliai, vair. atlyginimas, pelnas kilometrui kiekvienam klientui atskirai--------
+
+plot_data <- aggregate(islaidos_kurui ~ ketvirtis + klientas, data = data, FUN = sum)
+kilometrai <- aggregate(is_viso_km ~ ketvirtis + klientas, data = data, FUN= sum)
+plot_data <- left_join(plot_data,kilometrai)
+plot_data$kuras_eur_km <- plot_data$islaidos_kurui / plot_data$is_viso_km
+keliai <- aggregate(islaidos_keliams ~ ketvirtis + klientas, data = data, FUN = sum)
+plot_data <- left_join(plot_data,keliai)
+plot_data$keliai_eur_km <- plot_data$islaidos_keliams / plot_data$is_viso_km
+vairai <- aggregate(islaidos_vairams ~ ketvirtis + klientas, data = data, FUN = sum)
+plot_data <- left_join(plot_data,vairai)
+plot_data$vair_atlyg_km <- plot_data$islaidos_vairams / plot_data$is_viso_km
+frachtai <- aggregate(frachtas ~ ketvirtis + klientas, data = data, FUN = sum)
+plot_data <- left_join(plot_data,frachtai)
+plot_data$frachtas_km <- plot_data$frachtas / plot_data$is_viso_km
+pelnai <- aggregate(pelnas_pries_pap_islaidas ~ ketvirtis + klientas, data = data, FUN = sum)
+plot_data <- left_join(plot_data,pelnai)
+plot_data$pelnas_km <- plot_data$pelnas_pries_pap_islaidas / plot_data$is_viso_km
+
+plot_data2 <- plot_data[,c("kuras_eur_km","keliai_eur_km","vair_atlyg_km","pelnas_km","ketvirtis","klientas")]
+plot_data_melt2 <- melt(plot_data2, id = c("ketvirtis","klientas"))
+
+# reikia rankiniu būdu pakeisti klientus
+ggplot(data = plot_data_melt2[plot_data_melt2$klientas=="Valsped",], aes(x = ketvirtis, y = value, 
+  group = variable, color = variable)) +
+  geom_line(size = 2) +
+  scale_y_continuous(breaks = round(seq(0, max(plot_data_melt2$value), by = 0.05),2)) +
+  #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
+  ylab("EUR") +
+  xlab("Ketvirtis") +
+  ggtitle("Valsped išlaidos ir pelnas kilometrui") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24),
+        legend.text=element_text(size=13))
+
+
+# Kuro sąnaudos vs krovinio svoris, skirtumas tarp euro 5 ir euro 6 ----------------------------------------
+
+data$vid_pakr_t <- as.numeric(data$vid_pakr_t)
+data <- left_join(data,masina_modelis, by = c("masina" = "Numeris"))
+kuras_masina <- aggregate(lt_100km_faktas ~ masina, data = data, FUN = mean)
+tonazas_masina <- aggregate(vid_pakr_t ~ masina, data = data, FUN = mean)
+kuras_masina <- left_join(kuras_masina, tonazas_masina)
+kuras_masina <- left_join(kuras_masina,data[,c("masina","Variklis")])
+kuras_masina <- kuras_masina[!is.na(kuras_masina$Variklis),]
+
+ggplot(kuras_masina, aes(x=vid_pakr_t, y=lt_100km_faktas, color = Variklis)) +
+  geom_point() +  
+  geom_text(label = kuras_masina$masina) +
+  geom_smooth(method = "lm") +
+  ylab("Kuro sąnaudos 100 km litrais") +
+  xlab("Vidutinis pakrovimas tonomis") +
+  ggtitle("Kuro sąnaudų sąryšis su tonažu, skirtumas tarp Euro 5 ir Euro 6 variklių")
+
+# Kuro sąnaudos vs krovinio svoris, skirtumas tarp modelių ----------------------------------------
+
+kuras_masina <- aggregate(lt_100km_faktas ~ masina, data = data, FUN = mean)
+tonazas_masina <- aggregate(vid_pakr_t ~ masina, data = data, FUN = mean)
+kuras_masina <- left_join(kuras_masina, tonazas_masina)
+kuras_masina <- left_join(kuras_masina,data[,c("masina","Modelis")])
+kuras_masina <- kuras_masina[!is.na(kuras_masina$Modelis),]
+
+ggplot(kuras_masina, aes(x=vid_pakr_t, y=lt_100km_faktas, color = Modelis)) +
+  geom_point() +  
+  geom_text(label = kuras_masina$masina) +
+  geom_smooth(method = "lm") +
+  ylab("Kuro sąnaudos 100 km litrais") +
+  xlab("Vidutinis pakrovimas tonomis") +
+  ggtitle("Kuro sąnaudų sąryšis su tonažu, skirtumas tarp Euro 5 ir Euro 6 variklių")
+
+
+# Kuro sunaudojimas pagal klientą ir variklio tipą ------------------------
+
+# skaičiuojam kuro sąnaudas litrais kiekvienam klientui metams
+kuras_litrais_klientas_metai <- aggregate(lt_100km_faktas ~ klientas + Variklis, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas + Variklis, data = data, FUN = length)
+kuras_litrais_klientas_metai <- left_join(kuras_litrais_klientas_metai,reisai_klientas)
+kuras_litrais_klientas_metai$lt_100km_faktas2 <- kuras_litrais_klientas_metai$lt_100km_faktas / 
+            as.numeric(kuras_litrais_klientas_metai$is_viso_dienu)
+
+#metinis kuro išlaidų kilometrui grafikas
+kuras_litrais_plot <- kuras_litrais_klientas_metai
+ggplot(data = kuras_litrais_plot, aes(x = reorder(klientas, -lt_100km_faktas2), y = lt_100km_faktas2,
+                                      group = Variklis)) +
+  geom_col(aes(fill = Variklis) ,position = position_dodge()) +
+  scale_y_continuous(breaks = round(seq(0, max(kuras_litrais_plot$lt_100km_faktas2), by = 5),1)) +
+  ylab("Litrai") + 
+  ggtitle("Kuro sąnaudos 100km faktas 2018 pagal klientą ir variklio tipą") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(lt_100km_faktas2,1)), size = 5)
+
+# Pelnas dienai EUR pagal klientus ir variklio tipą, 4 ketvirtis vs metai --------------------
+
+#skaičiuojam pelną dienai paketvirčiui kiekvienam klientui
+pelnas_klientas_ketvirtis <- aggregate(pelnas_dienai ~ klientas + ketvirtis + Variklis, data = data, FUN = sum)
+reisai_klientas <- aggregate(is_viso_dienu ~ klientas + ketvirtis + Variklis, data = data, FUN = length)
+pelnas_klientas_ketvirtis <- left_join(pelnas_klientas_ketvirtis,reisai_klientas)
+pelnas_klientas_ketvirtis$pelnas_dienai2 <- pelnas_klientas_ketvirtis$pelnas_dienai/pelnas_klientas_ketvirtis$is_viso_dienu
+
+#paskutinio ketvirčio pelno grafikas
+pelnas_plot <- pelnas_klientas_ketvirtis[pelnas_klientas_ketvirtis$ketvirtis == ketvirtis,]
+ggplot(data = pelnas_plot, aes(x = reorder(klientas, -pelnas_dienai2), y = pelnas_dienai2)) +
+  geom_col(aes(fill = Variklis) ,position = position_dodge()) +
+  scale_y_continuous(breaks = round(seq(0, max(pelnas_plot$pelnas_dienai2), by = 10),0)) +
+  ylab("EUR") + 
+  ggtitle("Pelnas dienai 4 ketvirtis 2018 pagal klientą ir variklio tipą") +
+  xlab("Klientas") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24)) +
+  geom_text(aes(label = round(pelnas_dienai2,0)), size = 5)
+
+
+# Mašinos išvažiuotos dienos per metus -------------------------------------
+
+dienos_per_metus <- aggregate(is_viso_dienu ~ masina, data = data, FUN = sum)
+write.xlsx(dienos_per_metus,"Dienos per metus.xlsx")
 
 # Įrašom duomenis į failus ------------------------------------------------
 
