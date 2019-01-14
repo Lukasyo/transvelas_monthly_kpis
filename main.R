@@ -4,6 +4,8 @@
 # sekciją
 # 2. Valsped, EDP ir Nuova frachtai praėjusiam mėnesiui yra prognozuojami.
 
+# mintis ateičiai - frachtus skaičiuoti atėmus kelių mokesčius, nes skirtingose šalyse jie skirtingi.
+
 library(tidyverse)
 library(lubridate)
 library(reshape2)
@@ -787,19 +789,25 @@ plot_data$frachtas_km <- plot_data$frachtas / plot_data$is_viso_km
 pelnai <- aggregate(pelnas_pries_pap_islaidas ~ ketvirtis + klientas, data = data, FUN = sum)
 plot_data <- left_join(plot_data,pelnai)
 plot_data$pelnas_km <- plot_data$pelnas_pries_pap_islaidas / plot_data$is_viso_km
+dienos <- aggregate(is_viso_dienu ~ ketvirtis + klientas, data = data, FUN = sum)
+plot_data <- left_join(plot_data,dienos)
+plot_data$pelnas_dienai <- plot_data$pelnas_pries_pap_islaidas / plot_data$is_viso_dienu
+plot_data$islaidos_kurui_dienai <- plot_data$islaidos_kurui / plot_data$is_viso_dienu
+plot_data$km_dienai <- plot_data$is_viso_km / plot_data$is_viso_dienu
+plot_data$frachtas_dienai <- plot_data$frachtas / plot_data$is_viso_dienu
 
 plot_data2 <- plot_data[,c("kuras_eur_km","keliai_eur_km","vair_atlyg_km","pelnas_km","ketvirtis","klientas")]
 plot_data_melt2 <- melt(plot_data2, id = c("ketvirtis","klientas"))
 
 # reikia rankiniu būdu pakeisti klientus
-ggplot(data = plot_data_melt2[plot_data_melt2$klientas=="Valsped",], aes(x = ketvirtis, y = value, 
+ggplot(data = plot_data_melt2[plot_data_melt2$klientas=="BTK",], aes(x = ketvirtis, y = value, 
   group = variable, color = variable)) +
   geom_line(size = 2) +
   scale_y_continuous(breaks = round(seq(0, max(plot_data_melt2$value), by = 0.05),2)) +
   #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
   ylab("EUR") +
   xlab("Ketvirtis") +
-  ggtitle("Valsped išlaidos ir pelnas kilometrui") + 
+  ggtitle("BTK išlaidos ir pelnas kilometrui") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.text.y = element_text(angle = 0, hjust = 1,size=13),
         axis.title.y = element_text(size = rel(1.4), angle = 90),
@@ -807,6 +815,74 @@ ggplot(data = plot_data_melt2[plot_data_melt2$klientas=="Valsped",], aes(x = ket
         plot.title = element_text(size = 24),
         legend.text=element_text(size=13))
 
+
+# pelnas, kuras ir km dienai kiekvienam klientui --------------------------
+
+plot_data3 <- plot_data[,c("islaidos_kurui_dienai","pelnas_dienai","ketvirtis","klientas")]
+plot_data_melt3 <- melt(plot_data3, id = c("ketvirtis","klientas"))
+
+# reikia rankiniu būdu pakeisti klientus
+ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="BTK",], aes(x = ketvirtis, y = value, 
+                                                                     group = variable, color = variable)) +
+  geom_line(size = 2) +
+  scale_y_continuous(limits = c(0, max(plot_data_melt3[plot_data_melt3$klientas=="BTK","value"])), 
+                     breaks = round(seq(0, max(plot_data_melt3$value), by = 5),0)) +
+  #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
+  ylab("EUR") +
+  xlab("Ketvirtis") +
+  ggtitle("BTK išlaidos kurui ir pelnas dienai") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24),
+        legend.text=element_text(size=13))
+
+# kilometrai dienai
+
+plot_data3 <- plot_data[,c("km_dienai","ketvirtis","klientas")]
+plot_data_melt3 <- melt(plot_data3, id = c("ketvirtis","klientas"))
+
+# reikia rankiniu būdu pakeisti klientus
+ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="BTK",], aes(x = ketvirtis, y = value, 
+                                                                     group = variable, color = variable)) +
+  geom_line(size = 2) +
+  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="BTK","value"])*0.8,
+                                max(plot_data_melt3[plot_data_melt3$klientas=="BTK","value"])), 
+                     breaks = round(seq(0, max(plot_data_melt3$value), by = 25),0)) +
+  #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
+  ylab("Kilometrai") +
+  xlab("Ketvirtis") +
+  ggtitle("BTK kilometrai dienai") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24),
+        legend.text=element_text(size=13))
+
+# frachtas dienai
+
+plot_data3 <- plot_data[,c("frachtas_dienai","ketvirtis","klientas")]
+plot_data_melt3 <- melt(plot_data3, id = c("ketvirtis","klientas"))
+
+# reikia rankiniu būdu pakeisti klientus
+ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="BTK",], aes(x = ketvirtis, y = value, 
+                                                                     group = variable, color = variable)) +
+  geom_line(size = 2) +
+  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="BTK","value"])*0.8,
+                                max(plot_data_melt3[plot_data_melt3$klientas=="BTK","value"])), 
+                     breaks = round(seq(0, max(plot_data_melt3$value), by = 5),0)) +
+  #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
+  ylab("Eur") +
+  xlab("Ketvirtis") +
+  ggtitle("BTK frachtas dienai") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24),
+        legend.text=element_text(size=13))
 
 # Kuro sąnaudos vs krovinio svoris, skirtumas tarp euro 5 ir euro 6 ----------------------------------------
 
@@ -896,6 +972,48 @@ ggplot(data = pelnas_plot, aes(x = reorder(klientas, -pelnas_dienai2), y = pelna
 
 dienos_per_metus <- aggregate(is_viso_dienu ~ masina, data = data, FUN = sum)
 write.xlsx(dienos_per_metus,"Dienos per metus.xlsx")
+
+# Technocolor frachto struktūra euro 6 vs euro 5 praėjęs ketvirtis-----------------------------------------
+
+strukturai <- data[data$klientas == "Technocolor",c("is_viso_dienu","pelnas_pries_pap_islaidas","islaidos_vairams","islaidos_keliams",
+                      "islaidos_kurui","Variklis","ketvirtis")]
+
+strukturai <- melt(strukturai, id=c("Variklis","ketvirtis"))
+
+strukturai_agg <- aggregate(value ~ variable + Variklis + ketvirtis, data = strukturai, FUN = sum)
+
+dienos <- strukturai_agg[strukturai_agg$variable == "is_viso_dienu",]
+colnames(dienos)[4] <- "is_viso_dienu"
+
+strukturai_agg <- strukturai_agg[strukturai_agg$variable != "is_viso_dienu",]
+
+
+strukturai_agg <- left_join(strukturai_agg,dienos[,c("is_viso_dienu","Variklis","ketvirtis")])
+
+strukturai_agg$variable_dienai <- strukturai_agg$value / strukturai_agg$is_viso_dienu
+
+strukturai_agg <- strukturai_agg[strukturai_agg$ketvirtis == ketvirtis,]
+
+strukturai_agg <- strukturai_agg[ , !(names(strukturai_agg) == "ketvirtis")]
+
+pelnas <- strukturai_agg[strukturai_agg$variable == "pelnas_pries_pap_islaidas",c("Variklis","variable_dienai")]
+colnames(pelnas)[2] <- "pelnas_dienai2"
+
+strukturai_agg <- left_join(strukturai_agg, pelnas)
+
+ggplot(strukturai_agg, aes(y = variable_dienai, x = reorder(Variklis, -pelnas_dienai2))) + 
+  scale_fill_brewer(palette = "Spectral") + 
+  geom_col(aes(fill=variable), 
+           col="black", 
+           size=.1) +
+  ylab("EUR") + 
+  ggtitle("Frachto dienai struktūra 4 ketvirtis 2018 metai (išrikiuota pagal pelną)") +
+  xlab("Klientas") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24))
 
 # Įrašom duomenis į failus ------------------------------------------------
 
