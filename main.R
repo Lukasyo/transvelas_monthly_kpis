@@ -16,6 +16,8 @@ ketvirtis <- "04"
 # ketvirtis palyginimui
 lyg_ketvirtis <- "03"
 
+nuova_komisinis <- 0.092 #t.y. 9.2%
+
 # Duomenų paruošimas ------------------------------------------------------
 
 #pakraunam duomenis
@@ -87,6 +89,14 @@ data$menuo <- as.integer(data$menuo)
 # pridedam mašiną prie duomenų
 data <- left_join(data, reisas_masina)
 
+# ištrinam nereikalingus kintamuosius
+drops <- c("pelnas_po_kuro_dienai","grupe","pretenzija_visa_suma","frachtas_be_keltu",
+           "pelnas_po_pap_islaidu","pap_kint_islaidos","pap_past_islaidos","pelnas_po_pap_isl_dienai",
+           "islosta_ant_kuro","pretenzija_susigrazinta_is_vair", "pretenzija_islaidos_reisui",
+           "keltu_islaidos","islaidos_be_keltu")
+data <- data[ , !(names(data) %in% drops)]
+
+
 # Kelių mokesčio prognozė --------------------------------------------
 
 # prognozuojam praėjusio mėnesio kelių mokesčius imam prieš tai buvusių 4 mėnesių vidurkį pagal klientą
@@ -135,26 +145,87 @@ for (k in 1:nrow(frachtu_prognoze)) {
 # taip pat atnaujinam ir frachtas ir frachtas dienai rodiklius pagal naujai išskaičiuotą frachtas km
 
 data$is_viso_km <- as.numeric(data$is_viso_km)
-data[,"frachtas"] <- data[,"frachtas_km"] * 
-     data[,"is_viso_km"]
+data[data$klientas %in% c("Valsped","Nuova","EDP"),"frachtas"] <- data[data$klientas %in% c("Valsped","Nuova","EDP"),"frachtas_km"] * 
+     data[data$klientas %in% c("Valsped","Nuova","EDP"),"is_viso_km"]
 
 data$frachtas <- as.numeric(data$frachtas)
 data$is_viso_dienu <- as.numeric(data$is_viso_dienu)
 
-data[,"frachtas_dienai"] <- data[,"frachtas"] / 
-  data[,"is_viso_dienu"]
+data[data$klientas %in% c("Valsped","Nuova","EDP"),"frachtas_dienai"] <- data[data$klientas %in% c("Valsped","Nuova","EDP"),"frachtas"] / 
+  data[data$klientas %in% c("Valsped","Nuova","EDP"),"is_viso_dienu"]
 
 # atnaujinam ir kitus išvestinius rodiklius
 data$pelnas_pries_pap_islaidas <- as.numeric(data$pelnas_pries_pap_islaidas)
 data$reiso_islaidos <- as.numeric(data$reiso_islaidos)
-data[,"pelnas_pries_pap_islaidas"] <- data[,"frachtas"] - 
-  data[,"reiso_islaidos"]
+data[data$klientas %in% c("Valsped","Nuova","EDP"),"pelnas_pries_pap_islaidas"] <- data[data$klientas %in% c("Valsped","Nuova","EDP"),"frachtas"] - 
+  data[data$klientas %in% c("Valsped","Nuova","EDP"),"reiso_islaidos"]
 
-data[,"pelnas_dienai"] <- data[,"pelnas_pries_pap_islaidas"] / 
-  data[,"is_viso_dienu"]
+data[data$klientas %in% c("Valsped","Nuova","EDP"),"pelnas_dienai"] <- data[data$klientas %in% c("Valsped","Nuova","EDP"),"pelnas_pries_pap_islaidas"] / 
+  data[data$klientas %in% c("Valsped","Nuova","EDP"),"is_viso_dienu"]
 
-data[,"pelnas_km"] <- data[,"pelnas_pries_pap_islaidas"] / 
-  data[,"is_viso_km"]
+data[data$klientas %in% c("Valsped","Nuova","EDP"),"pelnas_km"] <- data[data$klientas %in% c("Valsped","Nuova","EDP"),"pelnas_pries_pap_islaidas"] / 
+  data[data$klientas %in% c("Valsped","Nuova","EDP"),"is_viso_km"]
+
+# kuras, keliai, vair. atlyginimas, pelnas kilometrui vienam grafike bendras --------
+data$kuras_eur_km <- as.numeric(data$kuras_eur_km)
+data$islaidos_kurui <- data$kuras_eur_km * data$is_viso_km
+plot_data <- aggregate(islaidos_kurui ~ menuo, data = data, FUN = sum)
+kilometrai <- aggregate(is_viso_km ~ menuo, data = data, FUN= sum)
+plot_data <- left_join(plot_data,kilometrai)
+plot_data$kuras_eur_km <- plot_data$islaidos_kurui / plot_data$is_viso_km
+data$islaidos_keliams <- data$keliai_eur_km * data$is_viso_km
+keliai <- aggregate(islaidos_keliams ~ menuo, data = data, FUN = sum)
+plot_data <- left_join(plot_data,keliai)
+plot_data$keliai_eur_km <- plot_data$islaidos_keliams / plot_data$is_viso_km
+data$vair_atlyg_km <- as.numeric(data$vair_atlyg_1_km)
+data$islaidos_vairams <- data$vair_atlyg_km * data$is_viso_km
+vairai <- aggregate(islaidos_vairams ~ menuo, data = data, FUN = sum)
+plot_data <- left_join(plot_data,vairai)
+plot_data$vair_atlyg_km <- plot_data$islaidos_vairams / plot_data$is_viso_km
+
+# minusuojam Nuovos komisinius -------------------
+
+data[data$klientas == "Nuova","frachtas"] <- as.numeric(data[data$klientas == "Nuova","frachtas"]) * (1 - nuova_komisinis)
+data[data$klientas == "Nuova","frachtas_km"] <- as.numeric(data[data$klientas == "Nuova","frachtas"]) /
+  as.numeric(data[data$klientas == "Nuova","is_viso_km"])
+data[data$klientas == "Nuova","pelnas_pries_pap_islaidas"] <- as.numeric(data[data$klientas == "Nuova","frachtas"]) -
+  as.numeric(data[data$klientas == "Nuova","islaidos_kurui"]) -
+  as.numeric(data[data$klientas == "Nuova","islaidos_keliams"]) -
+  as.numeric(data[data$klientas == "Nuova","islaidos_vairams"])
+data[data$klientas == "Nuova","pelnas_km"] <- as.numeric(data[data$klientas == "Nuova","pelnas_pries_pap_islaidas"]) /
+  as.numeric(data[data$klientas == "Nuova","is_viso_km"])
+data[data$klientas == "Nuova","pelnas_dienai"] <- as.numeric(data[data$klientas == "Nuova","pelnas_pries_pap_islaidas"]) /
+  as.numeric(data[data$klientas == "Nuova","is_viso_dienu"])
+
+
+# Jungiam EDP/Nuova į vieną -----------------------------------------------
+
+data[data$klientas %in% c("Nuova","EDP"), "klientas"] <- "EDP/Nuova"
+
+# tęsinys kuras, keliai, vair. atlyginimas, pelnas kilometrui vienam grafike bendras --------
+frachtai <- aggregate(frachtas ~ menuo, data = data, FUN = sum)
+plot_data <- left_join(plot_data,frachtai)
+plot_data$frachtas_km <- plot_data$frachtas / plot_data$is_viso_km
+pelnai <- aggregate(pelnas_pries_pap_islaidas ~ menuo, data = data, FUN = sum)
+plot_data <- left_join(plot_data,pelnai)
+plot_data$pelnas_km <- plot_data$pelnas_pries_pap_islaidas / plot_data$is_viso_km
+
+plot_data2 <- plot_data[,c("kuras_eur_km","keliai_eur_km","vair_atlyg_km","pelnas_km","menuo")]
+plot_data_melt2 <- melt(plot_data2, id = "menuo")
+
+ggplot(data = plot_data_melt2, aes(x = menuo, y = value, group = variable, color = variable)) +
+  geom_line(size = 2) +
+  scale_y_continuous(breaks = round(seq(0, max(plot_data_melt2$value), by = 0.05),2)) +
+  scale_x_continuous(breaks = round(seq(min(plot_data_melt2$menuo),max(plot_data_melt2$menuo), by = 1),0)) +
+  ylab("EUR") +
+  xlab("Atvykimo mėnuo") +
+  ggtitle("Išlaidos ir pelnas kilometrui") + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
+        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
+        axis.title.y = element_text(size = rel(1.4), angle = 90),
+        axis.title.x = element_text(size = rel(1.4), angle = 0),
+        plot.title = element_text(size = 24),
+        legend.text=element_text(size=13))
 
 # Klientų rodiklių skaičiavimas -------------------------------------------
 
@@ -182,62 +253,6 @@ pelnas_klientas_metai$pelnas_dienai2 <- pelnas_klientas_metai$pelnas_dienai/peln
 
 # jei pelnas neigiamas, statom 0
 pelnas_proc_klientas_ketvirtis[pelnas_proc_klientas_ketvirtis$pelnas_proc < 0,"pelnas_proc"] <- 0
-
-
-# kuras, keliai, vair. atlyginimas, pelnas kilometrui vienam grafike bendras --------
-data$kuras_eur_km <- as.numeric(data$kuras_eur_km)
-data$islaidos_kurui <- data$kuras_eur_km * data$is_viso_km
-plot_data <- aggregate(islaidos_kurui ~ menuo, data = data, FUN = sum)
-kilometrai <- aggregate(is_viso_km ~ menuo, data = data, FUN= sum)
-plot_data <- left_join(plot_data,kilometrai)
-plot_data$kuras_eur_km <- plot_data$islaidos_kurui / plot_data$is_viso_km
-data$islaidos_keliams <- data$keliai_eur_km * data$is_viso_km
-keliai <- aggregate(islaidos_keliams ~ menuo, data = data, FUN = sum)
-plot_data <- left_join(plot_data,keliai)
-plot_data$keliai_eur_km <- plot_data$islaidos_keliams / plot_data$is_viso_km
-data$vair_atlyg_km <- as.numeric(data$vair_atlyg_1_km)
-data$islaidos_vairams <- data$vair_atlyg_km * data$is_viso_km
-vairai <- aggregate(islaidos_vairams ~ menuo, data = data, FUN = sum)
-plot_data <- left_join(plot_data,vairai)
-plot_data$vair_atlyg_km <- plot_data$islaidos_vairams / plot_data$is_viso_km
-frachtai <- aggregate(frachtas ~ menuo, data = data, FUN = sum)
-plot_data <- left_join(plot_data,frachtai)
-plot_data$frachtas_km <- plot_data$frachtas / plot_data$is_viso_km
-pelnai <- aggregate(pelnas_pries_pap_islaidas ~ menuo, data = data, FUN = sum)
-plot_data <- left_join(plot_data,pelnai)
-plot_data$pelnas_km <- plot_data$pelnas_pries_pap_islaidas / plot_data$is_viso_km
-
-plot_data2 <- plot_data[,c("kuras_eur_km","keliai_eur_km","vair_atlyg_km","pelnas_km","menuo")]
-plot_data_melt2 <- melt(plot_data2, id = "menuo")
-
-ggplot(data = plot_data_melt2, aes(x = menuo, y = value, group = variable, color = variable)) +
-  geom_line(size = 2) +
-  scale_y_continuous(breaks = round(seq(0, max(plot_data_melt2$value), by = 0.05),2)) +
-  scale_x_continuous(breaks = round(seq(min(plot_data_melt2$menuo),max(plot_data_melt2$menuo), by = 1),0)) +
-  ylab("EUR") +
-  xlab("Atvykimo mėnuo") +
-  ggtitle("Išlaidos ir pelnas kilometrui") + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
-        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
-        axis.title.y = element_text(size = rel(1.4), angle = 90),
-        axis.title.x = element_text(size = rel(1.4), angle = 0),
-        plot.title = element_text(size = 24),
-        legend.text=element_text(size=13))
-
-
-# Frachtas/km bendras grafikas ----------------------------------------------------
-
-ggplot(data = plot_data, aes(x = menuo, y = frachtas_km, group = 1)) +
-  geom_line(size = 2) +
-  scale_y_continuous(breaks = round(seq(0, max(plot_data$frachtas_km), by = 0.05),2)) +
-  ylab("EUR") +
-  xlab("Atvykimo mėnuo") +
-  ggtitle("Frachtas kilometrui bendras") + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
-        axis.text.y = element_text(angle = 0, hjust = 1,size=13),
-        axis.title.y = element_text(size = rel(1.4), angle = 90),
-        axis.title.x = element_text(size = rel(1.4), angle = 0),
-        plot.title = element_text(size = 24))
 
 # Pokytis praėjusio ketvirčio lyginant su ankstesniu -----------------
 
@@ -582,7 +597,7 @@ ggplot(data = vair_atlyg_plot, aes(x = reorder(klientas, -vair_atlyg_dienai2), y
         plot.title = element_text(size = 24)) +
   geom_text(aes(label = round(vair_atlyg_dienai2,0)), size = 5)
 
-#metinis frachto dienai grafikas
+#metinis vair_atlyg dienai grafikas
 vair_atlyg_plot <- vair_atlyg_klientas_metai
 ggplot(data = vair_atlyg_plot, aes(x = reorder(klientas, -vair_atlyg_dienai2), y = vair_atlyg_dienai2)) +
   geom_col(fill = "steelblue") +
@@ -800,14 +815,14 @@ plot_data2 <- plot_data[,c("kuras_eur_km","keliai_eur_km","vair_atlyg_km","pelna
 plot_data_melt2 <- melt(plot_data2, id = c("ketvirtis","klientas"))
 
 # reikia rankiniu būdu pakeisti klientus
-ggplot(data = plot_data_melt2[plot_data_melt2$klientas=="BTK",], aes(x = ketvirtis, y = value, 
+ggplot(data = plot_data_melt2[plot_data_melt2$klientas=="EDP/Nuova",], aes(x = ketvirtis, y = value, 
   group = variable, color = variable)) +
   geom_line(size = 2) +
   scale_y_continuous(breaks = round(seq(0, max(plot_data_melt2$value), by = 0.05),2)) +
   #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
   ylab("EUR") +
   xlab("Ketvirtis") +
-  ggtitle("BTK išlaidos ir pelnas kilometrui") + 
+  ggtitle("EDP/Nuova išlaidos ir pelnas kilometrui") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.text.y = element_text(angle = 0, hjust = 1,size=13),
         axis.title.y = element_text(size = rel(1.4), angle = 90),
@@ -822,7 +837,7 @@ plot_data3 <- plot_data[,c("islaidos_kurui_dienai","pelnas_dienai","ketvirtis","
 plot_data_melt3 <- melt(plot_data3, id = c("ketvirtis","klientas"))
 
 # reikia rankiniu būdu pakeisti klientus
-ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="BTK",], aes(x = ketvirtis, y = value, 
+ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="Transuniverse",], aes(x = ketvirtis, y = value, 
                                                                      group = variable, color = variable)) +
   geom_line(size = 2) +
   scale_y_continuous(limits = c(0, max(plot_data_melt3[plot_data_melt3$klientas=="BTK","value"])), 
@@ -830,7 +845,7 @@ ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="BTK",], aes(x = ketvirt
   #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
   ylab("EUR") +
   xlab("Ketvirtis") +
-  ggtitle("BTK išlaidos kurui ir pelnas dienai") + 
+  ggtitle("Transuniverse išlaidos kurui ir pelnas dienai") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.text.y = element_text(angle = 0, hjust = 1,size=13),
         axis.title.y = element_text(size = rel(1.4), angle = 90),
@@ -844,16 +859,16 @@ plot_data3 <- plot_data[,c("km_dienai","ketvirtis","klientas")]
 plot_data_melt3 <- melt(plot_data3, id = c("ketvirtis","klientas"))
 
 # reikia rankiniu būdu pakeisti klientus
-ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="BTK",], aes(x = ketvirtis, y = value, 
+ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="Transuniverse",], aes(x = ketvirtis, y = value, 
                                                                      group = variable, color = variable)) +
   geom_line(size = 2) +
-  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="BTK","value"])*0.8,
-                                max(plot_data_melt3[plot_data_melt3$klientas=="BTK","value"])), 
+  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="Transuniverse","value"])*0.8,
+                                max(plot_data_melt3[plot_data_melt3$klientas=="Transuniverse","value"])), 
                      breaks = round(seq(0, max(plot_data_melt3$value), by = 25),0)) +
   #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
   ylab("Kilometrai") +
   xlab("Ketvirtis") +
-  ggtitle("BTK kilometrai dienai") + 
+  ggtitle("Transuniverse kilometrai dienai") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.text.y = element_text(angle = 0, hjust = 1,size=13),
         axis.title.y = element_text(size = rel(1.4), angle = 90),
@@ -867,16 +882,16 @@ plot_data3 <- plot_data[,c("frachtas_dienai","ketvirtis","klientas")]
 plot_data_melt3 <- melt(plot_data3, id = c("ketvirtis","klientas"))
 
 # reikia rankiniu būdu pakeisti klientus
-ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="BTK",], aes(x = ketvirtis, y = value, 
+ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="GW",], aes(x = ketvirtis, y = value, 
                                                                      group = variable, color = variable)) +
   geom_line(size = 2) +
-  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="BTK","value"])*0.8,
-                                max(plot_data_melt3[plot_data_melt3$klientas=="BTK","value"])), 
+  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="GW","value"])*0.8,
+                                max(plot_data_melt3[plot_data_melt3$klientas=="GW","value"])), 
                      breaks = round(seq(0, max(plot_data_melt3$value), by = 5),0)) +
   #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
   ylab("Eur") +
   xlab("Ketvirtis") +
-  ggtitle("BTK frachtas dienai") + 
+  ggtitle("GW frachtas dienai") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.text.y = element_text(angle = 0, hjust = 1,size=13),
         axis.title.y = element_text(size = rel(1.4), angle = 90),
