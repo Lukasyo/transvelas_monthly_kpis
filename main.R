@@ -17,9 +17,14 @@ ketvirtis <- "04"
 # ketvirtis palyginimui
 lyg_ketvirtis <- "03"
 
+
+#komisiniai
+
+komisiniai_klientai <- c("Nuova","Eurolinen")
+
 nuova_komisinis <- 0.092 #t.y. 9.2%
 
-# eurolinen komisiniai
+# eurolinen
 by <- 29 #eur
 be_fr <- 100 #eur
 it <- 145 #eur
@@ -101,25 +106,6 @@ drops <- c("pelnas_po_kuro_dienai","grupe","pretenzija_visa_suma","frachtas_be_k
            "islosta_ant_kuro","pretenzija_susigrazinta_is_vair", "pretenzija_islaidos_reisui",
            "keltu_islaidos","islaidos_be_keltu")
 data <- data[ , !(names(data) %in% drops)]
-
-#randam kuris reisas kur važiavo
-reisas_masina[grepl("BY",reisas_masina$uzduotys),"kryptis"] <- "BY"
-reisas_masina[grepl("BE",reisas_masina$uzduotys),"kryptis"] <- "BE_FR"
-reisas_masina[grepl("FR",reisas_masina$uzduotys),"kryptis"] <- "BE_FR"
-reisas_masina[grepl("IT",reisas_masina$uzduotys),"kryptis"] <- "IT"
-data <- left_join(data,reisas_masina[,c("reisas","kryptis")])
-
-# atimam Eurolinen komisinį iš frachtų
-data[data$klientas == "Eurolinen" & data$kryptis == "BY", "frachtas"] <- as.numeric(data[data$klientas == "Eurolinen" & 
-                                                                                           data$kryptis == "BY", "frachtas"]) - by
-data[data$klientas == "Eurolinen" & data$kryptis == "BE_FR", "frachtas"] <- as.numeric(data[data$klientas == "Eurolinen" & 
-                                                                                           data$kryptis == "BE_FR", "frachtas"]) - be_fr
-data[data$klientas == "Eurolinen" & data$kryptis == "IT", "frachtas"] <- as.numeric(data[data$klientas == "Eurolinen" & 
-                                                                                           data$kryptis == "IT", "frachtas"]) - it
-
-# pakeičiam susijusius rodiklius
-data$frachtas_km <- as.numeric(data$frachtas) / as.numeric(data$is_viso_km)
-
 
 # Kelių mokesčio prognozė --------------------------------------------
 
@@ -207,20 +193,33 @@ vairai <- aggregate(islaidos_vairams ~ menuo, data = data, FUN = sum)
 plot_data <- left_join(plot_data,vairai)
 plot_data$vair_atlyg_km <- plot_data$islaidos_vairams / plot_data$is_viso_km
 
-# minusuojam Nuovos komisinius -------------------
+# minusuojam klientų komisinius -------------------
+
+#randam kuris reisas kur važiavo
+reisas_masina[grepl("BY",reisas_masina$uzduotys),"kryptis"] <- "BY"
+reisas_masina[grepl("BE",reisas_masina$uzduotys),"kryptis"] <- "BE_FR"
+reisas_masina[grepl("FR",reisas_masina$uzduotys),"kryptis"] <- "BE_FR"
+reisas_masina[grepl("IT",reisas_masina$uzduotys),"kryptis"] <- "IT"
+data <- left_join(data,reisas_masina[,c("reisas","kryptis")])
+
+# atimam Eurolinen komisinį iš frachtų
+data[data$klientas == "Eurolinen" & data$kryptis == "BY", "frachtas"] <- as.numeric(data[data$klientas == "Eurolinen" &
+                                                                                           data$kryptis == "BY", "frachtas"]) - by
+data[data$klientas == "Eurolinen" & data$kryptis == "BE_FR", "frachtas"] <- as.numeric(data[data$klientas == "Eurolinen" &
+                                                                                              data$kryptis == "BE_FR", "frachtas"]) - be_fr
+data[data$klientas == "Eurolinen" & data$kryptis == "IT", "frachtas"] <- as.numeric(data[data$klientas == "Eurolinen" &
+                                                                                           data$kryptis == "IT", "frachtas"]) - it
 
 data[data$klientas == "Nuova","frachtas"] <- as.numeric(data[data$klientas == "Nuova","frachtas"]) * (1 - nuova_komisinis)
-data[data$klientas == "Nuova","frachtas_km"] <- as.numeric(data[data$klientas == "Nuova","frachtas"]) /
-  as.numeric(data[data$klientas == "Nuova","is_viso_km"])
-data[data$klientas == "Nuova","pelnas_pries_pap_islaidas"] <- as.numeric(data[data$klientas == "Nuova","frachtas"]) -
-  as.numeric(data[data$klientas == "Nuova","islaidos_kurui"]) -
-  as.numeric(data[data$klientas == "Nuova","islaidos_keliams"]) -
-  as.numeric(data[data$klientas == "Nuova","islaidos_vairams"])
-data[data$klientas == "Nuova","pelnas_km"] <- as.numeric(data[data$klientas == "Nuova","pelnas_pries_pap_islaidas"]) /
-  as.numeric(data[data$klientas == "Nuova","is_viso_km"])
-data[data$klientas == "Nuova","pelnas_dienai"] <- as.numeric(data[data$klientas == "Nuova","pelnas_pries_pap_islaidas"]) /
-  as.numeric(data[data$klientas == "Nuova","is_viso_dienu"])
 
+data[data$klientas %in% komisiniai_klientai,"frachtas_km"] <- as.numeric(data[data$klientas %in% komisiniai_klientai,"frachtas"]) /
+  as.numeric(data[data$klientas %in% komisiniai_klientai,"is_viso_km"])
+data[,"pelnas_pries_pap_islaidas"] <- as.numeric(data[,"frachtas"]) -
+  as.numeric(data[,"reiso_islaidos"])
+data[data$klientas %in% komisiniai_klientai,"pelnas_km"] <- as.numeric(data[data$klientas %in% komisiniai_klientai,"pelnas_pries_pap_islaidas"]) /
+  as.numeric(data[data$klientas %in% komisiniai_klientai,"is_viso_km"])
+data[data$klientas %in% komisiniai_klientai,"pelnas_dienai"] <- as.numeric(data[data$klientas %in% komisiniai_klientai,"pelnas_pries_pap_islaidas"]) /
+  as.numeric(data[data$klientas %in% komisiniai_klientai,"is_viso_dienu"])
 
 # Jungiam EDP/Nuova į vieną -----------------------------------------------
 
