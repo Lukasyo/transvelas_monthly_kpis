@@ -32,6 +32,7 @@ it <- 145 #eur
 # Duomenų paruošimas ------------------------------------------------------
 
 #pakraunam duomenis
+all <- read.csv("data/ALL.csv", stringsAsFactors=FALSE, encoding = "UTF-8", dec = ",")
 dedal <- read.csv("data/Dedal.csv", stringsAsFactors=FALSE, encoding = "UTF-8", dec = ",")
 eurolinen <- read.csv("data/EUROLINEN.csv", stringsAsFactors=FALSE, encoding = "UTF-8", dec = ",")
 technocolor <- read.csv("data/technocolor.csv", stringsAsFactors=FALSE, encoding = "UTF-8", dec = ",")
@@ -78,6 +79,7 @@ data <- bind_rows(mutate_all(dedal,as.character),mutate_all(eurolinen,as.charact
                   mutate_all(btk,as.character),mutate_all(ebrotrans,as.character),mutate_all(lkw_walter_kufstein,as.character),
                   mutate_all(valsped,as.character),mutate_all(fg_turin,as.character),mutate_all(fg_dalmine,as.character),
                   mutate_all(ispanija,as.character),mutate_all(dsv_road_ooo,as.character))
+
 
 #randam kurį mėnesį baigėsi reisas
 data$menuo <- substr(data$atvykimo_data,4,5)
@@ -846,14 +848,14 @@ plot_data2 <- plot_data[,c("kuras_eur_km","keliai_eur_km","vair_atlyg_km","pelna
 plot_data_melt2 <- melt(plot_data2, id = c("ketvirtis","klientas"))
 
 # reikia rankiniu būdu pakeisti klientus
-ggplot(data = plot_data_melt2[plot_data_melt2$klientas=="FG Dalmine",], aes(x = ketvirtis, y = value, 
+ggplot(data = plot_data_melt2[plot_data_melt2$klientas=="Ebrotrans",], aes(x = ketvirtis, y = value, 
   group = variable, color = variable)) +
   geom_line(size = 2) +
   scale_y_continuous(breaks = round(seq(0, max(plot_data_melt2$value), by = 0.05),2)) +
   #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
   ylab("EUR") +
   xlab("Ketvirtis") +
-  ggtitle("FG Dalmine išlaidos ir pelnas kilometrui") + 
+  ggtitle("Ebrotrans išlaidos ir pelnas kilometrui") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.text.y = element_text(angle = 0, hjust = 1,size=13),
         axis.title.y = element_text(size = rel(1.4), angle = 90),
@@ -868,15 +870,15 @@ plot_data3 <- plot_data[,c("islaidos_kurui_dienai","pelnas_dienai","vair_atlyg_d
 plot_data_melt3 <- melt(plot_data3, id = c("ketvirtis","klientas"))
 
 # reikia rankiniu būdu pakeisti klientus
-ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine",], aes(x = ketvirtis, y = value, 
+ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="LKW Walter Kufstein",], aes(x = ketvirtis, y = value, 
                                                                      group = variable, color = variable)) +
   geom_line(size = 2) +
-  scale_y_continuous(limits = c(0, max(plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine","value"])), 
+  scale_y_continuous(limits = c(0, max(plot_data_melt3[plot_data_melt3$klientas=="LKW Walter Kufstein","value"])), 
                      breaks = round(seq(0, max(plot_data_melt3$value), by = 5),0)) +
   #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
   ylab("EUR") +
   xlab("Ketvirtis") +
-  ggtitle("FG Dalmine išlaidos kurui ir pelnas dienai") + 
+  ggtitle("LKW Walter Kufstein išlaidos kurui ir pelnas dienai") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.text.y = element_text(angle = 0, hjust = 1,size=13),
         axis.title.y = element_text(size = rel(1.4), angle = 90),
@@ -890,16 +892,16 @@ plot_data3 <- plot_data[,c("km_dienai","ketvirtis","klientas")]
 plot_data_melt3 <- melt(plot_data3, id = c("ketvirtis","klientas"))
 
 # reikia rankiniu būdu pakeisti klientus
-ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine",], aes(x = ketvirtis, y = value, 
+ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="LKW Walter Kufstein",], aes(x = ketvirtis, y = value, 
                                                                      group = variable, color = variable)) +
   geom_line(size = 2) +
-  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine","value"])*0.5,
-                                max(plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine","value"])), 
+  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="LKW Walter Kufstein","value"])*0.5,
+                                max(plot_data_melt3[plot_data_melt3$klientas=="LKW Walter Kufstein","value"])), 
                      breaks = round(seq(0, max(plot_data_melt3$value), by = 10),0)) +
   #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
   ylab("Kilometrai") +
   xlab("Ketvirtis") +
-  ggtitle("FG Dalmine kilometrai dienai") + 
+  ggtitle("LKW Walter Kufstein kilometrai dienai") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.text.y = element_text(angle = 0, hjust = 1,size=13),
         axis.title.y = element_text(size = rel(1.4), angle = 90),
@@ -913,16 +915,16 @@ plot_data3 <- plot_data[,c("frachtas_dienai","ketvirtis","klientas")]
 plot_data_melt3 <- melt(plot_data3, id = c("ketvirtis","klientas"))
 
 # reikia rankiniu būdu pakeisti klientus
-ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine",], aes(x = ketvirtis, y = value, 
+ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="Ebrotrans",], aes(x = ketvirtis, y = value, 
                                                                      group = variable, color = variable)) +
   geom_line(size = 2) +
-  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine","value"])*0.8,
-                                max(plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine","value"])), 
+  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="Ebrotrans","value"])*0.8,
+                                max(plot_data_melt3[plot_data_melt3$klientas=="Ebrotrans","value"])), 
                      breaks = round(seq(0, max(plot_data_melt3$value), by = 5),0)) +
   #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
   ylab("Eur") +
   xlab("Ketvirtis") +
-  ggtitle("FG Dalmine frachtas dienai") + 
+  ggtitle("Ebrotrans frachtas dienai") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.text.y = element_text(angle = 0, hjust = 1,size=13),
         axis.title.y = element_text(size = rel(1.4), angle = 90),
@@ -936,16 +938,16 @@ plot_data3 <- plot_data[,c("frachtas_km","ketvirtis","klientas")]
 plot_data_melt3 <- melt(plot_data3, id = c("ketvirtis","klientas"))
 
 # reikia rankiniu būdu pakeisti klientus
-ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine",], aes(x = ketvirtis, y = value, 
+ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="EDP/Nuova",], aes(x = ketvirtis, y = value, 
                                                                     group = variable, color = variable)) +
   geom_line(size = 2) +
-  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine","value"])*0.8,
-                                max(plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine","value"])),
+  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="EDP/Nuova","value"])*0.8,
+                                max(plot_data_melt3[plot_data_melt3$klientas=="EDP/Nuova","value"])),
                      breaks = round(seq(0, max(plot_data_melt3$value), by = 0.02),2)) +
   #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
   ylab("Eur") +
   xlab("Ketvirtis") +
-  ggtitle("FG Dalmine frachtas kilometrui") + 
+  ggtitle("EDP/Nuova frachtas kilometrui") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.text.y = element_text(angle = 0, hjust = 1,size=13),
         axis.title.y = element_text(size = rel(1.4), angle = 90),
@@ -959,16 +961,16 @@ plot_data3 <- plot_data[,c("kuras_l_100km","ketvirtis","klientas")]
 plot_data_melt3 <- melt(plot_data3, id = c("ketvirtis","klientas"))
 
 # reikia rankiniu būdu pakeisti klientus
-ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine",], aes(x = ketvirtis, y = value, 
+ggplot(data = plot_data_melt3[plot_data_melt3$klientas=="EDP/Nuova",], aes(x = ketvirtis, y = value, 
                                                                     group = variable, color = variable)) +
   geom_line(size = 2) +
-  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine","value"])*0.8,
-                                max(plot_data_melt3[plot_data_melt3$klientas=="FG Dalmine","value"])), 
+  scale_y_continuous(limits = c(min(plot_data_melt3[plot_data_melt3$klientas=="EDP/Nuova","value"])*0.8,
+                                max(plot_data_melt3[plot_data_melt3$klientas=="EDP/Nuova","value"])), 
                      breaks = round(seq(0, max(plot_data_melt3$value), by = 1),0)) +
   #scale_x_continuous(breaks = round(seq(min(plot_data_melt2$ketvirtis),max(plot_data_melt2$ketvirtis), by = 1),0)) +
   ylab("Eur") +
   xlab("Ketvirtis") +
-  ggtitle("FG Dalmine kuro sąnaudos 100 km") + 
+  ggtitle("EDP/Nuova kuro sąnaudos 100 km") + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=13),
         axis.text.y = element_text(angle = 0, hjust = 1,size=13),
         axis.title.y = element_text(size = rel(1.4), angle = 90),
@@ -1112,3 +1114,8 @@ ggplot(strukturai_agg, aes(y = variable_dienai, x = reorder(Variklis, -pelnas_di
 write.xlsx(data,"K2 ataskaita extra.xlsx")
 write.xlsx(pok,"pok.xlsx")
 
+
+# Koeficientų skaičiavimas ------------------------------------------------
+
+koef <- plot_data[plot_data$ketvirtis == ketvirtis,c("pelnas_dienai","klientas")]
+koef$koef <- round((100 + (koef$pelnas_dienai - 100)/4)/100,2)
