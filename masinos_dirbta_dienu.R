@@ -1,6 +1,7 @@
 library(tidyverse)
 library(RMySQL)
 library(openxlsx)
+library(lubridate)
 
 pradzia <- as.Date("2019-01-01")
 pabaiga <- as.Date("2019-01-31")
