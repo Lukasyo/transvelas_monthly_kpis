@@ -3,8 +3,8 @@ library(RMySQL)
 library(openxlsx)
 library(lubridate)
 
-pradzia <- as.Date("2019-01-01")
-pabaiga <- as.Date("2019-01-31")
+pradzia <- as.Date("2019-02-01")
+pabaiga <- as.Date("2019-02-28")
 periodas <- seq(pradzia,pabaiga, by = "day")
 
 # Set up a connection to the mysql database (metrics)
@@ -33,6 +33,7 @@ keliones_lapas$atvykimo_data <- as.Date(keliones_lapas$atvykimo_data)
 keliones_lapas[keliones_lapas$atvykimo_data == "1989-06-06","atvykimo_data"] <- Sys.Date()
 keliones_lapas <- keliones_lapas[keliones_lapas$masina != "",]
 
+# skaičiuojam kiek dirbta dienų per periodą
 for (i in 1:nrow(keliones_lapas)) {
   
   dienos <- seq(keliones_lapas[i,"isvykimo_data"],keliones_lapas[i,"atvykimo_data"], by = "day")
@@ -45,6 +46,7 @@ masinos_dienos <- "test"
 
 keliones_lapas$intervalas <- interval(keliones_lapas$isvykimo_data,keliones_lapas$atvykimo_data)
 
+#ieškom ar nepersikloja periodai
 for ( m in unique(keliones_lapas$masina)) {
   
   reisai <- keliones_lapas[keliones_lapas$masina == m,"reiso_nr"]
