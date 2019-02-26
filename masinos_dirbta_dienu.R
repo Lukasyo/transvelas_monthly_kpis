@@ -4,8 +4,12 @@ library(openxlsx)
 library(lubridate)
 
 pradzia <- as.Date("2019-02-01")
-pabaiga <- as.Date("2019-02-28")
+pabaiga <- as.Date("2019-02-26")
 periodas <- seq(pradzia,pabaiga, by = "day")
+
+masinos_pagal_reiso_tipa <- read.xlsx("data/masinos_pagal_reiso_tipa.xlsx")
+
+persiklojancios_dienos <- 17 #rankiniu būdu išimamos persiklojančios dienos
 
 # Set up a connection to the mysql database (metrics)
 infotrans2019 <- src_mysql(dbname = "infot_transvelas_2019",
@@ -70,11 +74,19 @@ for ( m in unique(keliones_lapas$masina)) {
   
 }
 
-dubliuoti_reisai <- keliones_lapas[keliones_lapas$persikloja_periodai == TRUE & !is.na(keliones_lapas$persikloja_periodai),c("masina","reiso_nr")]
+dubliuoti_reisai <- keliones_lapas[keliones_lapas$persikloja_periodai == TRUE & !is.na(keliones_lapas$persikloja_periodai),c("masina","reiso_nr","intervalas")]
 
-masinos_dirbo_dienu_per_perioda$procentu_atidirbta <- round(masinos_dirbo_dienu_per_perioda$dirbta_dienu_per_perioda / length(periodas) * 100,1)
+masinos_dirbo_dienu_per_perioda$procentu_atidirbta <- round((masinos_dirbo_dienu_per_perioda$dirbta_dienu_per_perioda - 
+                                                              persiklojancios_dienos/nrow(masinos_dirbo_dienu_per_perioda))
+                                                                / length(periodas) * 100,1)
 
 masinos_dirbo_dienu_per_perioda <- masinos_dirbo_dienu_per_perioda[order(masinos_dirbo_dienu_per_perioda$dirbta_dienu_per_perioda, decreasing = TRUE),]
+
+masinos_dirbo_dienu_per_perioda <- left_join(masinos_dirbo_dienu_per_perioda,masinos_pagal_reiso_tipa)
+
+
+procentu_atidirbta_pagal_reiso_tipa <- aggregate(procentu_atidirbta ~ reiso_tipas, 
+                                                 data = masinos_dirbo_dienu_per_perioda[masinos_dirbo_dienu_per_perioda$masina != "GHS848",], FUN = mean)
 
 print("Periodo vidurkis (%):")
 print(round(mean(masinos_dirbo_dienu_per_perioda$procentu_atidirbta),2))

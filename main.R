@@ -80,6 +80,9 @@ data <- bind_rows(mutate_all(dedal,as.character),mutate_all(eurolinen,as.charact
                   mutate_all(valsped,as.character),mutate_all(fg_turin,as.character),mutate_all(fg_dalmine,as.character),
                   mutate_all(ispanija,as.character),mutate_all(dsv_road_ooo,as.character))
 
+#nurodom kur ratai, kur linija
+data[data$klientas %in% c("Dedal","Eurolinen","Technocolor","Translogistika"),"reiso_tipas"] <- "ratas"
+data[is.na(data$reiso_tipas),"reiso_tipas"] <- "linija"
 
 #randam kurį mėnesį baigėsi reisas
 data$menuo <- substr(data$atvykimo_data,4,5)
@@ -108,6 +111,22 @@ drops <- c("pelnas_po_kuro_dienai","grupe","pretenzija_visa_suma","frachtas_be_k
            "islosta_ant_kuro","pretenzija_susigrazinta_is_vair", "pretenzija_islaidos_reisui",
            "keltu_islaidos","islaidos_be_keltu")
 data <- data[ , !(names(data) %in% drops)]
+
+# paimam mašinų info
+
+# Set up a connection to the mysql database (metrics)
+infotrans2019 <- src_mysql(dbname = "infot_transvelas_2019",
+                           host = "192.168.0.244", 
+                           port = 3306, 
+                           user = "transvelas2019",
+                           password = "du4jRGv946S3LB6u")
+
+
+masinos <- as.data.frame(
+  tbl(infotrans2019, "masinos") %>%
+    collect())
+
+data <- left_join(data, masinos[,c("masinos_nr","marke")],by = c("masina" = "masinos_nr"))
 
 # Kelių mokesčio prognozė --------------------------------------------
 
@@ -1119,3 +1138,8 @@ write.xlsx(pok,"pok.xlsx")
 
 koef <- plot_data[plot_data$ketvirtis == ketvirtis,c("pelnas_dienai","klientas")]
 koef$koef <- round((100 + (koef$pelnas_dienai - 100)/4)/100,2)
+
+
+# Vidutinis pelnas dienai pagal reiso tipą ir vilkiko variklio tipą -------
+data$pelnas_dienai <- as.numeric(data$pelnas_dienai)
+test <- aggregate(pelnas_dienai ~ reiso_tipas + marke, data = data[data$marke %in% c("EURO5","EURO6"),], FUN = mean)
